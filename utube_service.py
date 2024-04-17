@@ -1,9 +1,28 @@
+import os
 import re
 import json
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from youtube_transcript_api import YouTubeTranscriptApi
+
+def scrape_channel_id_and_icon(utube_url_with_channel_name):
+
+    youtube_icon_link = None
+    youtube_channel_id = None
+
+    response = requests.get(utube_url_with_channel_name)
+    soup = bs(response.text, 'html.parser')
+
+    # Find all anchor tags
+    for link in soup.find_all('link', href=True):
+        href = link['href']
+        if href.startswith('https://yt3.googleusercontent.com'):
+            youtube_icon_link = href
+        elif href.startswith('https://www.youtube.com/channel'):
+            youtube_channel_id = href.replace("https://www.youtube.com/channel/","")
+
+    return youtube_icon_link, youtube_channel_id
 
 
 def get_video_details(soup):
@@ -43,7 +62,10 @@ def scrape_youtube(video_ids):
         infos['video_id'].append(video_details[3] if video_details[3] is not None else '')
         infos['external_link'].append(video_details[4] if video_details[4] is not None else [])
         infos['transcript'].append(transcript if transcript is not None else '')
-    return pd.DataFrame(infos)
+
+    df = pd.DataFrame(infos)
+    save_channel_data_df(df)
+    return df
 
 
 def get_bulk_utube_transcript(video_ids):
@@ -70,4 +92,44 @@ def get_single_utube_transcript(video_id):
     return None
     
     
+def save_channel_data_df(df, channel_name):
+    print("inside save_channel_data_df channel name:{}".format(channel_name))
+    folder_name = "data"
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(cur_dir,folder_name)
+    file_name = channel_name + ".csv"
+    file_name = os.path.join(data_dir, file_name)
+    df.to_csv(file_name, index=False)
     
+
+def get_channel_list():
+    print("inside get_channel_list")
+    data_dir = get_data_path()
+    files = os.listdir(data_dir)
+    csv_files = [file[:-4] for file in files if file.endswith('.csv')]
+    return csv_files
+
+
+def get_channel_data_df(channel_name):
+    print("inside get_channel_data_df channel name:{}".format(channel_name))
+    data_dir = get_data_path()
+    channel_name = channel_name + ".csv"
+    file_name = os.path.join(data_dir, channel_name)
+    df = pd.read_csv(file_name)
+    return df
+
+
+def get_data_path():
+
+    folder_name = "data"
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(cur_dir, folder_name)
+
+
+def fetch_videoid(path, channel_name):
+
+    data_path = get_data_path()
+    channel_path = os.path.join(data_path, channel_name)
+    source_file = path.replace(channel_path, "")
+    video_id = source_file.split('.')[0][1:]
+    return video_id

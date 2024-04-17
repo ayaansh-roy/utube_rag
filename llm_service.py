@@ -9,22 +9,20 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from langchain_community.vectorstores import Qdrant
 from langchain_community.embeddings import SentenceTransformerEmbeddings
-from langchain_community.document_loaders import UnstructuredFileLoader as FileLoader
+from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_community.document_loaders.text import TextLoader
+from langchain_community.llms import Ollama
+
+import utube_service
 
 # Set OpenAI API key environment variable (not used here but might be needed elsewhere)
 os.environ['OPENAI_API_KEY'] = "not_needed"
-
-# Initialize ChatOpenAI instance (using LM Studio inference server)
-llm = ChatOpenAI(base_url="http://localhost:1234/v1")
-
-COLLECTION_NAME = "giskard_db"
+llm = Ollama(model="gemma:2b")
 
 # Qdrant setup
 qdrant_url = "http://localhost:6333"
 client = QdrantClient(url=qdrant_url, prefer_grpc=False)
 embeddings = SentenceTransformerEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-db = Qdrant(client=client, embeddings=embeddings, collection_name=COLLECTION_NAME)
-
 
 # Template for the prompt
 prompt_template = """
@@ -41,37 +39,39 @@ Only return the helpful answer. Answer must be detailed and well explained.
 # Create a prompt template
 prompt = PromptTemplate(template=prompt_template, input_variables=['context', 'question'])
 
-def load_pdf(uploaded_pdf):
-    
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        temp_file.write(uploaded_pdf.read())
-        temp_file_path = temp_file.name
 
-        loader = FileLoader(temp_file_path)
-        documents = loader.load()
-
-    return documents
-
-
-def create_kb(documents):
+def create_kb(channel_name):
+    print("inside create_kb")
     global qdrant_url, embeddings
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, 
-                                                   chunk_overlap=100)
-    chunks = text_splitter.split_documents(documents)
+    data_path = utube_service.get_data_path()
+    channel_folder = os.path.join(data_path, channel_name)
 
-    # Create vector database
-    Qdrant.from_documents(
-        chunks,
-        embeddings,
-        url=qdrant_url,
-        prefer_grpc=False,
-        collection_name=COLLECTION_NAME
-    )
+    # create text file feed code here
+    files = os.listdir(channel_folder)
+    txt_files = [file for file in files if file.endswith('.txt')]
+
+    for txt in txt_files:
+        txt_file_name = os.path.join(channel_folder, txt)
+        loader = TextLoader(txt_file_name, encoding="utf-8")
+        documents = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, 
+                                                    chunk_overlap=100)
+        chunks = text_splitter.split_documents(documents)
+
+        # Create vector database
+        Qdrant.from_documents(
+            chunks,
+            embeddings,
+            url=qdrant_url,
+            prefer_grpc=False,
+            collection_name=channel_name
+        )
 
 
-def get_response(query):
-
+def get_response(query, COLLECTION_NAME):
+    print("inside get_response |  query:{} collection name:{}".format(query, COLLECTION_NAME))
+    db = Qdrant(client=client, embeddings=embeddings, collection_name=COLLECTION_NAME)
     retriever = db.as_retriever(search_kwargs={"k": 5}, search_type="mmr")
         
     # Initialize QA chain
@@ -87,9 +87,17 @@ def get_response(query):
     response = qa(query)
     answer = response['result']
 
+    video_ids = []
     source_documents = []
-    for source_doc in response['source_documents']:
-        source_documents.append(source_doc.page_content)
 
-    return answer, source_documents
+    for source_doc in response['source_documents']:
+        
+        source_text = source_doc.page_content
+        source_file = source_doc.metadata['source']
+        video_id = utube_service.fetch_videoid(source_file, COLLECTION_NAME)
+
+        video_ids.append(video_id)
+        source_documents.append(source_text)
+
+    return answer, source_documents, video_ids
 

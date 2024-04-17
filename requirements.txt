@@ -8,3 +8,4 @@ qdrant_client
 scrapetube
 youtube-transcript-api
 bs4
+stqdm
