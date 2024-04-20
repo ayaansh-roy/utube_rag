@@ -40,33 +40,29 @@ Only return the helpful answer. Answer must be detailed and well explained.
 prompt = PromptTemplate(template=prompt_template, input_variables=['context', 'question'])
 
 
-def create_kb(channel_name):
-    print("inside create_kb")
+def create_kb(channel_name, video_id):
+    print("inside create_kb channel_name:{} video_id:{}".format(channel_name, video_id))
     global qdrant_url, embeddings
 
     data_path = utube_service.get_data_path()
-    channel_folder = os.path.join(data_path, channel_name)
+    video_text_file = os.path.join(data_path, channel_name, video_id)
+    video_text_file = video_text_file + '.txt'
+    print("File to be loaded for extraction:{}".format(video_text_file))
 
-    # create text file feed code here
-    files = os.listdir(channel_folder)
-    txt_files = [file for file in files if file.endswith('.txt')]
+    loader = TextLoader(video_text_file, encoding="utf-8")
+    documents = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, 
+                                                chunk_overlap=100)
+    chunks = text_splitter.split_documents(documents)
 
-    for txt in txt_files:
-        txt_file_name = os.path.join(channel_folder, txt)
-        loader = TextLoader(txt_file_name, encoding="utf-8")
-        documents = loader.load()
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, 
-                                                    chunk_overlap=100)
-        chunks = text_splitter.split_documents(documents)
-
-        # Create vector database
-        Qdrant.from_documents(
-            chunks,
-            embeddings,
-            url=qdrant_url,
-            prefer_grpc=False,
-            collection_name=channel_name
-        )
+    # Create vector database
+    Qdrant.from_documents(
+        chunks,
+        embeddings,
+        url=qdrant_url,
+        prefer_grpc=False,
+        collection_name=channel_name
+    )
 
 
 def get_response(query, COLLECTION_NAME):

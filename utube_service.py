@@ -91,30 +91,33 @@ def get_single_utube_transcript(video_id):
 
     return None
     
-    
 def save_channel_data_df(df, channel_name):
-    print("inside save_channel_data_df channel name:{}".format(channel_name))
+    print("Inside save_channel_data_df channel name:{}".format(channel_name))
     folder_name = "data"
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(cur_dir,folder_name)
+    channel_dir = os.path.join(cur_dir, folder_name, channel_name)
     file_name = channel_name + ".csv"
-    file_name = os.path.join(data_dir, file_name)
-    df.to_csv(file_name, index=False)
+    file_path = os.path.join(channel_dir, file_name)
+
+    os.makedirs(channel_dir, exist_ok=True)
+
+    # Save the DataFrame to a CSV file
+    df.to_csv(file_path, index=False)
     
 
 def get_channel_list():
     print("inside get_channel_list")
     data_dir = get_data_path()
-    files = os.listdir(data_dir)
-    csv_files = [file[:-4] for file in files if file.endswith('.csv')]
-    return csv_files
+    folders = os.listdir(data_dir)
+    return folders
 
 
 def get_channel_data_df(channel_name):
     print("inside get_channel_data_df channel name:{}".format(channel_name))
     data_dir = get_data_path()
+    channel_dir = os.path.join(data_dir, channel_name)
     channel_name = channel_name + ".csv"
-    file_name = os.path.join(data_dir, channel_name)
+    file_name = os.path.join(channel_dir, channel_name)
     df = pd.read_csv(file_name)
     return df
 
