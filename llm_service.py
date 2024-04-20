@@ -26,13 +26,13 @@ embeddings = SentenceTransformerEmbeddings(model_name="sentence-transformers/all
 
 # Template for the prompt
 prompt_template = """
-Use the following pieces of information to answer the user's question.
-If you don't know the answer, just say that you don't know, don't try to make up an answer.
+Given the context provided, I will consider the relevant information to formulate a detailed and well-explained answer to the user's question. If the answer is not within my knowledge base, I will clearly state that I don't know.
 
 Context: {context}
 Question: {question}
 
-Only return the helpful answer. Answer must be detailed and well explained.
+I will now process the information and provide a helpful and comprehensive answer:
+
 
 """
 

@@ -191,5 +191,4 @@ if page == const.YT_AGENT_PAGE:
                     with col2:
                         youtube_url = f"https://www.youtube.com/watch?v={video_ids[idx]}"
                         st.video(youtube_url)
-                        #st.write(youtube_url)
                     count += 1
