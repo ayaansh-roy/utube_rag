@@ -10,17 +10,6 @@ import llm_service
 import utube_service
 import constants as const
 
-st.set_page_config(layout="wide")
-
-# Create a page dropdown
-page = st.sidebar.radio(
-    "Page Navigator",
-    [
-        const.YT_FETCH_PAGE,
-        const.YT_AGENT_PAGE,
-    ],
-)
-
 
 def scrape_youtube(video_ids):
     infos = {
@@ -122,26 +111,48 @@ def fetch_transcript(utube_info_df):
 
     channel_name = create_channel_name(channel_list[0])
 
+    # Create a progress bar
+    progress_bar = st.progress(0)
+
     for idx, video_id in enumerate(video_id_list):
+        progress_bar.progress((idx + 1) / len(video_id_list))
+
         if is_trans_fetched[idx] is False:
             transcript = utube_service.get_single_utube_transcript(video_id)
             create_trans_txt_file(title_list[idx], channel_name, description_list[idx], video_id, transcript)
 
-            st.write("Initiating Knowledgebase Creation For:{} !".format(video_id))
+            print("Initiating Knowledgebase Creation For:{} !".format(video_id))
             llm_service.create_kb(channel_name, video_id)
-            st.write("Knowledgebase Created For:{} !".format(video_id))
+            print("Knowledgebase Created For:{} !".format(video_id))
 
             utube_info_df.loc[idx, 'transcript'] = transcript
             utube_info_df.loc[idx, 'is_trans_fetched'] = True
 
             utube_service.save_channel_data_df(utube_info_df, channel_name)
+    
+    st.write("Knowledgebase Created Successfully !")
 
+    # Close progress bar
+    progress_bar.empty()
+
+
+
+st.set_page_config(layout="wide")
+
+# Create a page dropdown
+page = st.sidebar.radio(
+    "Page Navigator",
+    [
+        const.YT_FETCH_PAGE,
+        const.YT_AGENT_PAGE,
+    ],
+)
 st.header("Youtube RAG Application")
 
 if page == const.YT_FETCH_PAGE:
 
     utube_channel_link = st.text_input("Provide Youtube Channel Link", "")
-    fetch_button = st.button("Fetch")
+    fetch_button = st.button("Extract & Create Knowledgebase")
 
     if fetch_button and len(utube_channel_link)>5:
         

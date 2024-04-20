@@ -1,17 +1,13 @@
 import os
-import tempfile
 from qdrant_client import QdrantClient
-from langchain_openai import ChatOpenAI
-
-from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from langchain_community.vectorstores import Qdrant
-from langchain_community.embeddings import SentenceTransformerEmbeddings
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_community.document_loaders.text import TextLoader
 from langchain_community.llms import Ollama
+from langchain_community.vectorstores import Qdrant
+from langchain_community.document_loaders.text import TextLoader
+from langchain_community.embeddings import SentenceTransformerEmbeddings
 
 import utube_service
 
@@ -26,7 +22,9 @@ embeddings = SentenceTransformerEmbeddings(model_name="sentence-transformers/all
 
 # Template for the prompt
 prompt_template = """
-Given the context provided, I will consider the relevant information to formulate a detailed and well-explained answer to the user's question. If the answer is not within my knowledge base, I will clearly state that I don't know.
+Given the context provided, I will consider the relevant information to formulate a detailed and 
+well-explained answer to the user's question. If the answer is not within my knowledge base, 
+I will clearly state that I don't know.
 
 Context: {context}
 Question: {question}
