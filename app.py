@@ -3,7 +3,6 @@ import requests
 import scrapetube
 import pandas as pd
 import streamlit as st
-from stqdm import stqdm
 from bs4 import BeautifulSoup as bs
 
 import llm_service
@@ -143,13 +142,13 @@ st.set_page_config(layout="wide")
 page = st.sidebar.radio(
     "Page Navigator",
     [
-        const.YT_FETCH_PAGE,
-        const.YT_AGENT_PAGE,
+        const.YT_EXTRACT_PAGE,
+        const.YT_RAG_PAGE,
     ],
 )
 st.header("Youtube RAG Application")
 
-if page == const.YT_FETCH_PAGE:
+if page == const.YT_EXTRACT_PAGE:
 
     utube_channel_link = st.text_input("Provide Youtube Channel Link", "")
     fetch_button = st.button("Extract & Create Knowledgebase")
@@ -170,7 +169,7 @@ if page == const.YT_FETCH_PAGE:
         fetch_transcript(utube_info_df)
 
 
-if page == const.YT_AGENT_PAGE:
+if page == const.YT_RAG_PAGE:
 
     channel_list = utube_service.get_channel_list()
     channel_list.insert(0, const.SEL_CHANL)    
